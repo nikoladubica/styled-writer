@@ -36,7 +36,8 @@
   };
 
   const BELL_CHARS = 7;       // ring the bell this many characters before the right margin
-  const LINE_RATIO = 0.68;    // typing line position, as a fraction of viewport height
+  const BOTTOM_GAP = 92;      // px from the bottom of the screen to the line being typed
+  const LAMP_DROP = 32;       // px the lamp hangs below the line (matches --drop in the CSS)
 
   /* ---------------- State ---------------- */
 
@@ -109,7 +110,7 @@
   }
 
   function typingLineY() {
-    return Math.round(viewportHeight() * LINE_RATIO);
+    return Math.round(viewportHeight() - BOTTOM_GAP);
   }
 
   // Move the paper so the caret's line rests on the typing line.
@@ -117,7 +118,7 @@
     if (!caretEl) return;
     const lineY = typingLineY();
     const caretBottom = caretEl.offsetTop + caretEl.offsetHeight;
-    const base = lineY - caretBottom - 6;
+    const base = lineY - caretBottom;
 
     const textBottom = textEl.offsetTop + textEl.offsetHeight;
     const maxOff = Math.max(0, 90 - base);                   // paper top can come down to here
@@ -157,7 +158,7 @@
       // Fan of light. Its apex sits inside the lamp, set low enough that the fan is
       // already as wide as the diffuser when it leaves the top of the fixture.
       const w = fontSize() * 2.4;                  // matches --w in the CSS
-      const fixtureTop = lamp.y + 3;               // matches .fixture { top: 3px }
+      const fixtureTop = lamp.y + 3 + LAMP_DROP;   // matches #lamp --top in the CSS
       const halfAngle = 72 * Math.PI / 180;        // matches --a in the CSS
       const apexY = fixtureTop + (w * 0.44) / Math.tan(halfAngle);
       const cut = apexY;                           // nothing lit below the apex

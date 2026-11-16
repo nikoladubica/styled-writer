@@ -177,6 +177,8 @@ body.reading #beam { opacity: 0; }
 
 #lamp {
   --w: calc(var(--fs) * 2.4);         /* fixture width */
+  --drop: 32px;                       /* how far below the line the fixture hangs (keep in sync with LAMP_DROP in app.js) */
+  --top: calc(3px + var(--drop));     /* fixture's top edge, relative to the bottom of the letter */
   position: fixed;
   left: 0; top: 0;
   width: 0; height: 0;
@@ -186,11 +188,37 @@ body.reading #beam { opacity: 0; }
   will-change: transform;
 }
 
+/* the stick: rises from the middle of the fixture up to the letter,
+   capped with a small crossbar like a T */
+#lamp .stick {
+  position: absolute;
+  left: -1px;
+  top: 3px;
+  width: 2px;
+  height: calc(var(--top) - 3px + var(--w) * .23);   /* down to the fixture's middle (hidden behind it) */
+  border-radius: 1px;
+  background: linear-gradient(90deg, #d6d6d2, #ffffff 50%, #d6d6d2);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .1);
+}
+
+#lamp .stick::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ffffff, #dcdcd8);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .12);
+}
+
 /* outer white housing */
 #lamp .fixture {
   position: absolute;
   left: calc(var(--w) / -2);
-  top: 3px;
+  top: var(--top);
   width: var(--w);
   height: calc(var(--w) * .46);
   border-radius: 999px;
@@ -223,7 +251,7 @@ body.reading #beam { opacity: 0; }
   position: absolute;
   left: calc(var(--w) * -.5);
   width: var(--w);
-  top: calc(var(--w) * -.12);
+  top: calc(var(--top) - 3px - var(--w) * .12);
   height: calc(var(--w) * .45);
   border-radius: 50%;
   background: radial-gradient(ellipse 50% 50% at 50% 70%,
@@ -510,9 +538,9 @@ button.toggle[aria-pressed="false"] { color: var(--ui-dim); }
 #toast {
   position: fixed;
   left: 50%;
-  bottom: 28px;
+  top: 72px;   /* under the toolbar, clear of the lamp at the bottom */
   z-index: 8;
-  transform: translate(-50%, 8px);
+  transform: translate(-50%, -8px);
   padding: 9px 16px;
   border-radius: 999px;
   font: 500 13px var(--ui-font);
