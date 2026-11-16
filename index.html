@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-visual">
+  <title>Styled Writer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="lamp-on">
+
+  <!-- Edgeless paper. The text column is A4 width at typewriter pitch;
+       it moves up as you type while the typing line stays put. -->
+  <main id="stage" aria-label="Typewriter">
+    <article id="paper">
+      <div id="text" aria-live="off"></div>
+    </article>
+  </main>
+
+  <!-- Room darkness + warm lamp light -->
+  <div id="light" aria-hidden="true"></div>
+
+  <!-- The cursor-lamp -->
+  <div id="lamp" aria-hidden="true">
+    <span class="halo"></span>
+    <span class="bulb"></span>
+  </div>
+
+  <!-- Real input lives here, invisible. It handles keyboard, IME, paste, undo. -->
+  <textarea id="input" aria-label="Write" spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
+
+  <header id="bar">
+    <div class="meta">
+      <span id="docTitle">Untitled</span>
+      <span class="dot">·</span>
+      <span id="wordCount">0 words</span>
+      <span class="dot">·</span>
+      <span id="saveState">—</span>
+    </div>
+
+    <span class="sep" aria-hidden="true"></span>
+
+    <nav class="actions">
+      <button id="btnPages" type="button" class="icon" data-tip="Pages  Esc" aria-label="Saved pages">
+        <svg viewBox="0 0 24 24"><rect x="4" y="3" width="13" height="16" rx="2.5"/><path d="M8 21h9.5A2.5 2.5 0 0 0 20 18.5V7"/><path d="M8 8h5M8 12h5"/></svg>
+      </button>
+      <button id="btnNew" type="button" class="icon" data-tip="New sheet" aria-label="New sheet">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button id="btnSave" type="button" class="icon" data-tip="Save  ⌘S" aria-label="Save">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+
+      <span class="sep" aria-hidden="true"></span>
+
+      <button id="btnSound" type="button" class="icon toggle" data-tip="Sound" aria-label="Sound" aria-pressed="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M11 5 6.5 9H3v6h3.5L11 19z"/>
+          <g class="on"><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/></g>
+          <g class="off"><path d="m16 9.5 5 5M21 9.5l-5 5"/></g>
+        </svg>
+      </button>
+      <button id="btnLamp" type="button" class="icon toggle" data-tip="Lamp" aria-label="Lamp" aria-pressed="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 18h6M10 21.5h4"/>
+          <path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5.8 1.1.8 1.9V16h6v-.8c0-.8.3-1.4.8-1.9A6.5 6.5 0 0 0 12 2.5z"/>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <div id="scrim" hidden></div>
+  <aside id="drawer" aria-label="Saved pages" aria-hidden="true">
+    <header>
+      <h2>Pages</h2>
+      <button id="btnCloseDrawer" type="button" class="icon" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <ul id="docList"></ul>
+    <p id="docEmpty">Nothing saved yet. Start typing — pages save themselves.</p>
+  </aside>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

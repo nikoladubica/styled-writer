@@ -1,0 +1,452 @@
+/* ==========================================================================
+   Styled Writer
+   ========================================================================== */
+
+:root {
+  --font: "Special Elite", "Courier Prime", "Courier New", Courier, monospace;
+  --ui-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+
+  --fs: clamp(16px, 0.55vw + 11px, 20px);
+  --lh: 1.7;
+
+  /* A4 typed at 10 characters per inch with 1" margins = 63 characters per line */
+  --line-chars: 63ch;
+
+  --paper: #fdfdfb;
+  --ink: #1f1d1b;
+  --warm: #ffb347;
+
+  --glass: rgba(22, 22, 24, .72);
+  --glass-border: rgba(255, 255, 255, .09);
+  --ui: rgba(255, 255, 255, .92);
+  --ui-dim: rgba(255, 255, 255, .5);
+  --ui-hover: rgba(255, 255, 255, .09);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+
+/* ---------- Paper (edgeless) ---------------------------------------------- */
+
+#stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  cursor: text;
+  touch-action: none;
+}
+
+/* Invisible A4 text column: lines wrap at its edges by themselves */
+#paper {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(var(--line-chars), calc(100vw - 40px));
+  min-height: 100vh;
+  padding: 4.5rem 0 60vh;
+  font-size: var(--fs);
+  line-height: var(--lh);
+  transform: translate3d(-50%, 0, 0);
+  transition: transform .18s cubic-bezier(.2, .7, .3, 1);
+  will-change: transform;
+}
+
+#paper.no-anim { transition: none; }
+
+#text {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  color: var(--ink);
+  text-shadow: 0 0 .5px rgba(31, 29, 27, .45);
+  min-height: calc(var(--lh) * 1em);
+}
+
+#text mark {
+  background: rgba(255, 179, 71, .3);
+  color: inherit;
+  border-radius: 3px;
+}
+
+/* the character just struck: warm from the lamp, then settles into ink */
+#text .strike { animation: strike .22s ease-out; }
+@keyframes strike {
+  0%   { color: #8a5a20; text-shadow: 0 0 8px rgba(255, 170, 70, .9); }
+  100% { color: var(--ink); }
+}
+
+#text .placeholder {
+  color: rgba(31, 29, 27, .25);
+  text-shadow: none;
+  pointer-events: none;
+}
+
+/* ---------- Light ---------------------------------------------------------- */
+
+#light {
+  --x: 50vw; --y: 60vh; --r: 340px; --warm-a: .12;
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse calc(var(--r) * 1.05) calc(var(--r) * .8) at var(--x) var(--y),
+      rgba(255, 190, 110, var(--warm-a)) 0%,
+      rgba(255, 190, 110, 0) 60%),
+    radial-gradient(ellipse calc(var(--r) * 1.7) calc(var(--r) * 1.3) at var(--x) var(--y),
+      rgba(20, 18, 16, 0) 0%,
+      rgba(20, 18, 16, .12) 45%,
+      rgba(20, 18, 16, .6) 100%);
+  transition: opacity .7s ease;
+}
+
+body:not(.lamp-on) #light { opacity: 0; }
+
+/* ---------- Cursor lamp: a small glowing oval ------------------------------ */
+
+#lamp {
+  --h: 24px;
+  position: fixed;
+  left: 0; top: 0;
+  width: calc(var(--h) * .5);
+  height: var(--h);
+  z-index: 4;
+  pointer-events: none;
+  will-change: transform;
+}
+
+#lamp .bulb {
+  position: absolute;
+  left: 1px;
+  top: 8%;
+  width: calc(var(--h) * .48);
+  height: 84%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 30%, #fffaf0 0%, #ffd596 40%, #ffa63d 100%);
+  box-shadow:
+    0 0 0 1px rgba(240, 150, 50, .55),
+    0 0 6px rgba(255, 180, 90, .9),
+    0 0 18px rgba(255, 165, 70, .6),
+    0 0 40px rgba(255, 150, 50, .3);
+  transition: transform .12s ease;
+}
+
+#lamp .halo {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 110px; height: 110px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 130, .28), rgba(255, 200, 130, 0) 65%);
+}
+
+/* lights on: the lamp is still the cursor, just without the bloom */
+body:not(.lamp-on) #lamp .halo { opacity: .35; }
+
+/* breathing when idle, steady while typing; a tiny pulse on each key */
+body:not(.typing) #lamp .bulb { animation: breathe 2s ease-in-out infinite; }
+body.typing #lamp .bulb { transform: scale(1.06); }
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
+}
+
+body.unfocused #lamp { opacity: .35; }
+
+/* ---------- Hidden input --------------------------------------------------- */
+
+#input {
+  position: fixed;
+  left: 0; top: 0;
+  width: 2px; height: 1.5em;
+  padding: 0; margin: 0; border: 0;
+  opacity: 0;
+  resize: none;
+  overflow: hidden;
+  font-size: 16px; /* stops iOS zoom-on-focus */
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  z-index: 0;
+}
+
+/* ---------- Toolbar: one floating glass pill ------------------------------- */
+
+#bar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  padding: 5px 5px 5px 18px;
+  font-family: var(--ui-font);
+  font-size: 13px;
+  color: var(--ui);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25), 0 1px 0 rgba(255, 255, 255, .06) inset;
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  transition: opacity .4s ease, transform .4s ease;
+}
+
+body.typing:not(.ui-hover) #bar {
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  pointer-events: none;
+}
+
+#bar .meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  letter-spacing: -.005em;
+}
+
+#docTitle {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 550;
+}
+
+#wordCount, #saveState, .dot { color: var(--ui-dim); font-variant-numeric: tabular-nums; }
+
+.sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: rgba(255, 255, 255, .12);
+  flex: none;
+}
+
+#bar .actions { display: flex; align-items: center; gap: 2px; }
+
+button.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ui);
+  cursor: pointer;
+  transition: background .15s, color .15s, transform .1s;
+}
+
+button.icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+button.icon:hover { background: var(--ui-hover); }
+button.icon:active { transform: scale(.92); }
+button.icon:focus-visible { outline: 2px solid var(--warm); outline-offset: 1px; }
+
+/* toggles */
+button.toggle[aria-pressed="true"] { color: var(--warm); }
+button.toggle[aria-pressed="false"] { color: var(--ui-dim); }
+#btnSound .off { display: none; }
+#btnSound[aria-pressed="false"] .on { display: none; }
+#btnSound[aria-pressed="false"] .off { display: inline; }
+#btnLamp[aria-pressed="true"] svg path:last-child { fill: rgba(255, 179, 71, .22); }
+
+/* tooltips */
+#bar button.icon[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(22, 22, 24, .92);
+  color: #fff;
+  font: 500 12px/1 var(--ui-font);
+  white-space: pre;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s, transform .15s;
+}
+#bar button.icon[data-tip]:hover::after { opacity: 1; transform: translate(-50%, 0); transition-delay: .35s; }
+
+@media (max-width: 640px) {
+  #bar { top: 10px; padding-left: 14px; }
+  #wordCount, #bar .meta .dot:first-of-type { display: none; }
+  #docTitle { max-width: 12ch; }
+  button.icon { width: 32px; height: 32px; }
+  #bar button.icon[data-tip]::after { display: none; }
+}
+
+/* ---------- Drawer --------------------------------------------------------- */
+
+#scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  background: rgba(10, 10, 12, .35);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+#drawer {
+  position: fixed;
+  top: 12px; right: 12px; bottom: 12px;
+  z-index: 7;
+  width: min(360px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  font-family: var(--ui-font);
+  color: var(--ui);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  transform: translateX(calc(100% + 24px));
+  transition: transform .32s cubic-bezier(.2, .8, .2, 1);
+  overflow: hidden;
+}
+
+#drawer.open { transform: none; }
+
+#drawer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 10px 10px 20px;
+}
+
+#drawer h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+#docList {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#docList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+#docList li:hover,
+#docList li:focus-visible { background: var(--ui-hover); outline: none; }
+#docList li.current { background: rgba(255, 179, 71, .12); }
+
+#docList .info { flex: 1; min-width: 0; }
+
+#docList .title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#docList .sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ui-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+#docList .del {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ui-dim);
+  font: 500 12px var(--ui-font);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s, color .15s;
+}
+#docList li:hover .del,
+#docList li:focus-within .del,
+#docList .del.confirm { opacity: 1; }
+#docList .del:hover { background: var(--ui-hover); color: var(--ui); }
+#docList .del.confirm { background: rgba(255, 90, 80, .18); color: #ff8a80; }
+
+#docEmpty {
+  margin: 0;
+  padding: 8px 20px 24px;
+  color: var(--ui-dim);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ---------- Toast ---------------------------------------------------------- */
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 8;
+  transform: translate(-50%, 8px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font: 500 13px var(--ui-font);
+  color: var(--ui);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+}
+
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  #paper, #drawer, #bar { transition: none; }
+  body:not(.typing) #lamp .bulb { animation: none; }
+  #text .strike { animation: none; }
+}
