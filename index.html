@@ -6,7 +6,7 @@
   <title>Styled Writer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cutive&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="lamp-on">
@@ -19,13 +19,14 @@
     </article>
   </main>
 
-  <!-- Room darkness + warm lamp light -->
+  <!-- Dim room + the V-shaped beam from the lamp -->
   <div id="light" aria-hidden="true"></div>
+  <div id="beam" aria-hidden="true"></div>
 
-  <!-- The cursor-lamp -->
+  <!-- The cursor: a small pill-shaped wall lamp under the letter being typed -->
   <div id="lamp" aria-hidden="true">
-    <span class="halo"></span>
-    <span class="bulb"></span>
+    <span class="glow"></span>
+    <span class="fixture"><span class="diffuser"></span></span>
   </div>
 
   <!-- Real input lives here, invisible. It handles keyboard, IME, paste, undo. -->

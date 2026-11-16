@@ -17,7 +17,7 @@
   const paper = $('#paper');
   const textEl = $('#text');
   const lampEl = $('#lamp');
-  const lightEl = $('#light');
+  const beamEls = [$('#light'), $('#beam')];
   const ui = {
     title: $('#docTitle'),
     words: $('#wordCount'),
@@ -129,13 +129,15 @@
 
   /* ---------------- Lamp (cursor + light) ---------------- */
 
-  const lamp = { x: 0, y: 0, h: 24, ready: false, flicker: 1 };
+  const lamp = { x: 0, y: 0, ready: false, flicker: 1 };
 
+  // The lamp sits centred under the character cell about to be typed,
+  // just below the line, shining up onto the text.
   function tick() {
     if (caretEl && caretEl.isConnected) {
       const r = caretEl.getBoundingClientRect();
-      const tx = r.left;
-      const ty = r.top;
+      const tx = r.left + charWidth() / 2;
+      const ty = r.bottom;
       if (!lamp.ready) {
         lamp.x = tx;
         lamp.y = ty;
@@ -143,50 +145,58 @@
       }
       lamp.x += (tx - lamp.x) * 0.32;
       lamp.y += (ty - lamp.y) * 0.32;
-      lamp.h = r.height || lamp.h;
 
       lampEl.style.transform = `translate3d(${lamp.x}px, ${lamp.y}px, 0)`;
-      lampEl.style.setProperty('--h', `${lamp.h}px`);
-      input.style.transform = `translate3d(${lamp.x}px, ${lamp.y}px, 0)`;
+      input.style.transform = `translate3d(${r.left}px, ${r.top}px, 0)`;
 
       // a warm bulb never burns perfectly steady
       lamp.flicker += (0.96 + Math.random() * 0.06 - lamp.flicker) * 0.08;
 
-      const vw = window.innerWidth;
-      const vh = viewportHeight();
-      const reading = readOffset !== 0;
-      const pr = paper.getBoundingClientRect();
-      const paperCx = pr.left + pr.width / 2;
-      const radius = Math.max(220, Math.min(400, vw * 0.36)) * lamp.flicker * (reading ? 1.35 : 1);
+      body.classList.toggle('reading', readOffset !== 0);
 
-      // the pool of light sits a little above the caret, pulled toward the page centre,
-      // so the lines you just wrote are lit too
-      const cx = reading ? paperCx : lamp.x * 0.7 + paperCx * 0.3;
-      const cy = reading ? vh * 0.45 : lamp.y - radius * 0.22;
+      // Fan of light. Its apex sits inside the lamp, set low enough that the fan is
+      // already as wide as the diffuser when it leaves the top of the fixture.
+      const w = fontSize() * 2.4;                  // matches --w in the CSS
+      const fixtureTop = lamp.y + 3;               // matches .fixture { top: 3px }
+      const halfAngle = 72 * Math.PI / 180;        // matches --a in the CSS
+      const apexY = fixtureTop + (w * 0.44) / Math.tan(halfAngle);
+      const cut = apexY;                           // nothing lit below the apex
+      const reach = Math.max(380, Math.min(1000, viewportHeight() * 1.1)) * lamp.flicker;
 
-      lightEl.style.setProperty('--x', `${cx.toFixed(1)}px`);
-      lightEl.style.setProperty('--y', `${cy.toFixed(1)}px`);
-      lightEl.style.setProperty('--r', `${radius.toFixed(1)}px`);
+      for (const el of beamEls) {
+        el.style.setProperty('--ax', `${lamp.x.toFixed(1)}px`);
+        el.style.setProperty('--ay', `${apexY.toFixed(1)}px`);
+        el.style.setProperty('--cut', `${cut.toFixed(1)}px`);
+        el.style.setProperty('--r', `${reach.toFixed(1)}px`);
+      }
     }
     requestAnimationFrame(tick);
   }
 
-  // width of one typed character in the current font size
-  function measureCh() {
+  // average width of one typed character in the current font + size (cached)
+  let chCache = 0;
+  function charWidth() {
+    if (chCache) return chCache;
     const probe = document.createElement('span');
     probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-    probe.textContent = 'mmmmmmmmmm';
+    probe.textContent = 'nonsense typewriter';
     paper.append(probe);
-    const w = probe.getBoundingClientRect().width / 10;
+    chCache = probe.getBoundingClientRect().width / probe.textContent.length || 10;
     probe.remove();
-    return w || 10;
+    return chCache;
   }
+  let fsCache = 0;
+  function fontSize() {
+    return fsCache || (fsCache = parseFloat(getComputedStyle(paper).fontSize) || 18);
+  }
+  const resetCharWidth = () => { chCache = 0; fsCache = 0; };
+  window.addEventListener('resize', resetCharWidth);
 
   function ringBellIfNearMargin() {
     if (!caretEl) return;
     const textRect = textEl.getBoundingClientRect();
     const caretRect = caretEl.getBoundingClientRect();
-    const chWidth = measureCh();
+    const chWidth = charWidth();
     const remaining = (textRect.right - caretRect.left) / chWidth;
     const lineTop = caretEl.offsetTop;
     if (remaining <= BELL_CHARS && bellLineTop !== lineTop) {
@@ -577,7 +587,7 @@
   openDoc(start, { sound: false });
 
   // re-measure once the typewriter font has arrived
-  if (document.fonts?.ready) document.fonts.ready.then(() => { render(); });
+  if (document.fonts?.ready) document.fonts.ready.then(() => { resetCharWidth(); render(); });
 
   requestAnimationFrame(tick);
 })();

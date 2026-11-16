@@ -3,7 +3,7 @@
    ========================================================================== */
 
 :root {
-  --font: "Special Elite", "Courier Prime", "Courier New", Courier, monospace;
+  --font: "Cutive", "Courier Prime", "Courier New", Courier, monospace;
   --ui-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
 
   --fs: clamp(16px, 0.55vw + 11px, 20px);
@@ -96,77 +96,161 @@ button { font: inherit; color: inherit; }
   pointer-events: none;
 }
 
-/* ---------- Light ---------------------------------------------------------- */
+/* ---------- Light: a wide fan rising from the lamp ------------------------
+   --ax/--ay  apex of the fan (just inside the lamp)
+   --cut      nothing is lit below this line (the lamp only shines up)
+   --a        half-angle of the fully lit part (72° each side ≈ 144° total)
+   --soft     angular width of the shadow edge (lit fades out by --a + --soft ≈ 89°)
+   Because the edge is an *angle*, it is nearly crisp at the lamp and grows
+   wider and softer the further the light travels.
+   --r        how far the light reaches                                        */
 
-#light {
-  --x: 50vw; --y: 60vh; --r: 340px; --warm-a: .12;
+#light, #beam {
+  --ax: 50vw; --ay: 70vh; --cut: 70vh; --r: 460px;
+  --a: 72deg; --soft: 17deg;
+  /* angles (relative to the fan's left edge) where the eased shadow ramps sit */
+  --l1: calc(var(--soft) * .25);
+  --l2: calc(var(--soft) * .5);
+  --l3: calc(var(--soft) * .75);
+  --l4: var(--soft);
+  --r0: calc(2 * var(--a) + var(--soft));
+  --r1: calc(var(--r0) + var(--soft) * .25);
+  --r2: calc(var(--r0) + var(--soft) * .5);
+  --r3: calc(var(--r0) + var(--soft) * .75);
+  --r4: calc(var(--r0) + var(--soft));
+  --from: calc(-1 * (var(--a) + var(--soft)));
   position: fixed;
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse calc(var(--r) * 1.05) calc(var(--r) * .8) at var(--x) var(--y),
-      rgba(255, 190, 110, var(--warm-a)) 0%,
-      rgba(255, 190, 110, 0) 60%),
-    radial-gradient(ellipse calc(var(--r) * 1.7) calc(var(--r) * 1.3) at var(--x) var(--y),
-      rgba(20, 18, 16, 0) 0%,
-      rgba(20, 18, 16, .12) 45%,
-      rgba(20, 18, 16, .6) 100%);
-  transition: opacity .7s ease;
+  transition: opacity .6s ease;
 }
 
-body:not(.lamp-on) #light { opacity: 0; }
+/* the dim room: covers everything outside the fan, and fades in with distance */
+#light {
+  --fan-shadow: conic-gradient(from var(--from) at var(--ax) var(--ay),
+      rgba(0,0,0,1) 0deg,
+      rgba(0,0,0,.84) var(--l1), rgba(0,0,0,.5) var(--l2), rgba(0,0,0,.16) var(--l3),
+      rgba(0,0,0,0) var(--l4),
+      rgba(0,0,0,0) var(--r0),
+      rgba(0,0,0,.16) var(--r1), rgba(0,0,0,.5) var(--r2), rgba(0,0,0,.84) var(--r3),
+      rgba(0,0,0,1) var(--r4), rgba(0,0,0,1) 360deg);
+  --distance: radial-gradient(circle at var(--ax) var(--ay),
+      transparent 0, transparent calc(var(--r) * .42), #000 var(--r));
+  --below: linear-gradient(180deg, transparent var(--cut), #000 calc(var(--cut) + 1px));
+  background: rgba(20, 18, 16, .5);
+  -webkit-mask-image: var(--fan-shadow), var(--distance), var(--below);
+  mask-image: var(--fan-shadow), var(--distance), var(--below);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+}
 
-/* ---------- Cursor lamp: a small glowing oval ------------------------------ */
+/* the warm tint of the light itself, brightest at the lamp */
+#beam {
+  --fan: conic-gradient(from var(--from) at var(--ax) var(--ay),
+      rgba(0,0,0,0) 0deg,
+      rgba(0,0,0,.16) var(--l1), rgba(0,0,0,.5) var(--l2), rgba(0,0,0,.84) var(--l3),
+      rgba(0,0,0,1) var(--l4),
+      rgba(0,0,0,1) var(--r0),
+      rgba(0,0,0,.84) var(--r1), rgba(0,0,0,.5) var(--r2), rgba(0,0,0,.16) var(--r3),
+      rgba(0,0,0,0) var(--r4), rgba(0,0,0,0) 360deg);
+  --above: linear-gradient(180deg, #000 var(--cut), transparent calc(var(--cut) + 1px));
+  background: radial-gradient(circle at var(--ax) var(--ay),
+    rgba(255, 210, 140, .55) 0,
+    rgba(255, 214, 150, .22) calc(var(--r) * .35),
+    rgba(255, 214, 150, 0) var(--r));
+  mix-blend-mode: multiply;
+  -webkit-mask-image: var(--fan), var(--above);
+  mask-image: var(--fan), var(--above);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+body:not(.lamp-on) #light,
+body:not(.lamp-on) #beam { opacity: 0; }
+
+/* scrolling back to read: bring the room lights up so the whole page is readable */
+body.reading #light { opacity: .3; }
+body.reading #beam { opacity: 0; }
+
+/* ---------- Cursor lamp: a white pill wall-light under the next letter ------ */
 
 #lamp {
-  --h: 24px;
+  --w: calc(var(--fs) * 2.4);         /* fixture width */
   position: fixed;
   left: 0; top: 0;
-  width: calc(var(--h) * .5);
-  height: var(--h);
+  width: 0; height: 0;
   z-index: 4;
+  font-size: var(--fs);
   pointer-events: none;
   will-change: transform;
 }
 
-#lamp .bulb {
+/* outer white housing */
+#lamp .fixture {
   position: absolute;
-  left: 1px;
-  top: 8%;
-  width: calc(var(--h) * .48);
-  height: 84%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 30%, #fffaf0 0%, #ffd596 40%, #ffa63d 100%);
+  left: calc(var(--w) / -2);
+  top: 3px;
+  width: var(--w);
+  height: calc(var(--w) * .46);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f2 50%, #e2e2de 100%);
   box-shadow:
-    0 0 0 1px rgba(240, 150, 50, .55),
-    0 0 6px rgba(255, 180, 90, .9),
-    0 0 18px rgba(255, 165, 70, .6),
-    0 0 40px rgba(255, 150, 50, .3);
+    inset 0 1px 0 #fff,
+    inset 0 -1px 1px rgba(0, 0, 0, .07),
+    0 0 0 .5px rgba(0, 0, 0, .1),
+    0 2px 3px rgba(0, 0, 0, .12),
+    0 6px 14px rgba(0, 0, 0, .1);
   transition: transform .12s ease;
 }
 
-#lamp .halo {
+/* inset frosted diffuser — this is the part that lights up */
+#lamp .diffuser {
   position: absolute;
-  left: 50%; top: 50%;
-  width: 110px; height: 110px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 200, 130, .28), rgba(255, 200, 130, 0) 65%);
+  inset: 13% 5.5% 11%;
+  border-radius: 999px;
+  background: radial-gradient(ellipse 70% 90% at 50% 45%, #fffffb 0%, #fff8ea 60%, #f6ead4 100%);
+  box-shadow:
+    inset 0 1.5px 1.5px rgba(0, 0, 0, .14),
+    inset 0 -1px 1px rgba(255, 255, 255, .9),
+    0 0 5px rgba(255, 240, 210, .95),
+    0 0 14px rgba(255, 220, 160, .55);
+  transition: box-shadow .4s ease, background .4s ease;
 }
 
-/* lights on: the lamp is still the cursor, just without the bloom */
-body:not(.lamp-on) #lamp .halo { opacity: .35; }
+/* bright bloom where the beam leaves the diffuser */
+#lamp .glow {
+  position: absolute;
+  left: calc(var(--w) * -.5);
+  width: var(--w);
+  top: calc(var(--w) * -.12);
+  height: calc(var(--w) * .45);
+  border-radius: 50%;
+  background: radial-gradient(ellipse 50% 50% at 50% 70%,
+    rgba(255, 226, 170, .7) 0%,
+    rgba(255, 226, 170, 0) 100%);
+  mix-blend-mode: multiply;
+  transition: opacity .4s ease;
+}
 
-/* breathing when idle, steady while typing; a tiny pulse on each key */
-body:not(.typing) #lamp .bulb { animation: breathe 2s ease-in-out infinite; }
-body.typing #lamp .bulb { transform: scale(1.06); }
+/* idle: the light breathes; typing: steady and a touch brighter */
+body:not(.typing) #lamp .glow,
+body:not(.typing) #lamp .diffuser { animation: breathe 2.4s ease-in-out infinite; }
+body.typing #lamp .fixture { transform: translateY(1px); }
 @keyframes breathe {
   0%, 100% { opacity: 1; }
-  50%      { opacity: .45; }
+  50%      { opacity: .55; }
 }
 
-body.unfocused #lamp { opacity: .35; }
+/* lights on: the fixture is still the cursor, just switched off */
+body:not(.lamp-on) #lamp .glow { opacity: 0; animation: none; }
+body:not(.lamp-on) #lamp .diffuser {
+  animation: none;
+  background: linear-gradient(180deg, #f3f3f1, #fbfbfa);
+  box-shadow: inset 0 1.5px 1.5px rgba(0, 0, 0, .14), inset 0 -1px 1px rgba(255, 255, 255, .9);
+}
+
+body.unfocused #lamp { opacity: .45; }
 
 /* ---------- Hidden input --------------------------------------------------- */
 
@@ -447,6 +531,7 @@ button.toggle[aria-pressed="false"] { color: var(--ui-dim); }
 
 @media (prefers-reduced-motion: reduce) {
   #paper, #drawer, #bar { transition: none; }
-  body:not(.typing) #lamp .bulb { animation: none; }
+  body:not(.typing) #lamp .glow,
+  body:not(.typing) #lamp .diffuser { animation: none; }
   #text .strike { animation: none; }
 }
